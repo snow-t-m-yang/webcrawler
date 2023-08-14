@@ -1,6 +1,6 @@
 const { crawl } = require("./crawl.js");
 
-function main() {
+async function main() {
   if (process.argv.length < 3) {
     console.log("not wbesite provided");
     process.exit(1);
@@ -13,9 +13,13 @@ function main() {
 
   const baseUrl = process.argv[2];
 
-  console.log("starting main.js", baseUrl);
+  console.log("starting main.js 👉", baseUrl);
 
-  crawl(baseUrl);
+  const pages = await crawl(baseUrl, baseUrl, {});
+
+  for (const page of Object.entries(pages)) {
+    console.log(page);
+  }
 }
 
 main();

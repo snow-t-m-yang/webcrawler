@@ -2,26 +2,49 @@ const { JSDOM } = require("jsdom");
 
 // https://github.com/jsdom/jsdom
 
-async function crawl(currentUrl) {
-  console.log(`crawling ${currentUrl}`);
+async function crawl(baseUrl, currentUrl, pages) {
+  const baseUrlObj = new URL(baseUrl);
+  const currentUrlObj = new URL(currentUrl);
+
+  if (baseUrlObj.hostname !== currentUrlObj.hostname) {
+    return pages;
+  }
+
+  const normalizeCurrentUrl = normalizeUrl(currentUrl);
+
+  if (pages[normalizeCurrentUrl] > 0) {
+    pages[normalizeCurrentUrl] += 1;
+    return pages;
+  }
+
+  // first time we've seen this page
+  pages[normalizeCurrentUrl] = 1;
+
+  console.log(`📣 crawling ${currentUrl}`);
 
   try {
     const resp = await fetch(currentUrl);
 
     if (resp.status > 399) {
-      console.log(`error fetching ${currentUrl}: ${resp.status}`);
-      return;
+      console.log(`⚠️ error fetching ${currentUrl}: ${resp.status}`);
+      return pages;
     }
 
     const contentType = resp.headers.get("content-type");
-    if (contentType.includes("text/html")) {
-      console.log(`error fetching ${currentUrl}: not html on ${currentUrl}`);
+    if (!contentType.includes("text/html")) {
+      console.log(`⚠️ error fetching ${currentUrl}: not html on ${currentUrl}`);
     }
 
-    console.log(await resp.text());
+    const htmlBody = await resp.text();
+    const nextUrls = getUrlFromHTML(htmlBody, baseUrl);
+    for (const nextUrl of nextUrls) {
+      pages = await crawl(baseUrl, nextUrl, pages);
+    }
   } catch (error) {
-    console.log(`error fetching ${currentUrl}: ${error.message}`);
+    console.log(`⚠️ error fetching ${currentUrl}: ${error.message}`);
   }
+
+  return pages;
 }
 
 function getUrlFromHTML(htmlBody, baseUrl) {
