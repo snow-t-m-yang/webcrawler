@@ -2,6 +2,28 @@ const { JSDOM } = require("jsdom");
 
 // https://github.com/jsdom/jsdom
 
+async function crawl(currentUrl) {
+  console.log(`crawling ${currentUrl}`);
+
+  try {
+    const resp = await fetch(currentUrl);
+
+    if (resp.status > 399) {
+      console.log(`error fetching ${currentUrl}: ${resp.status}`);
+      return;
+    }
+
+    const contentType = resp.headers.get("content-type");
+    if (contentType.includes("text/html")) {
+      console.log(`error fetching ${currentUrl}: not html on ${currentUrl}`);
+    }
+
+    console.log(await resp.text());
+  } catch (error) {
+    console.log(`error fetching ${currentUrl}: ${error.message}`);
+  }
+}
+
 function getUrlFromHTML(htmlBody, baseUrl) {
   const urls = [];
   const dom = new JSDOM(htmlBody);
@@ -39,6 +61,7 @@ function normalizeUrl(urlString) {
 }
 
 module.exports = {
+  crawl,
   normalizeUrl,
   getUrlFromHTML,
 };
